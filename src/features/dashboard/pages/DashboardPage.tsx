@@ -7,10 +7,11 @@ interface StatCard {
 }
 
 // Static placeholders until the dashboard counts service lands in M2.
+// Application-centric on purpose: jobs only matter here once pursued.
 const stats: readonly StatCard[] = [
   { label: "Applications", value: 0 },
-  { label: "Jobs Saved", value: 0 },
-  { label: "Interviewing", value: 0 },
+  { label: "Applied", value: 0 },
+  { label: "Interviews", value: 0 },
   { label: "Offers", value: 0 },
 ];
 

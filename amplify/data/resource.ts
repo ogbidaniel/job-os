@@ -37,6 +37,8 @@ const schema = a.schema({
       salary: a.string(),
       applicationUrl: a.url(),
       sourceUrl: a.url(),
+      // When the posting was published (record save date is createdAt).
+      postedAt: a.datetime(),
       status: a.ref("JobStatus"),
       applications: a.hasMany("Application", "jobId"),
     })
