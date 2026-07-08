@@ -47,4 +47,12 @@ export default defineConfig([{
             allowConstantExport: true,
         }],
     },
+}, {
+    // shadcn/ui components export helpers (buttonVariants, hooks) alongside
+    // components; fast-refresh purity is not worth forking CLI-managed code.
+    files: ["src/components/ui/**/*.{ts,tsx}"],
+
+    rules: {
+        "react-refresh/only-export-components": "off",
+    },
 }, globalIgnores(["**/dist"])]);
