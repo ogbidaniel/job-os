@@ -35,6 +35,8 @@ import { dateInputToIso, formatDate, isoToDateInput } from "@/lib/dates";
 import type { ApplicationStatus } from "@/types/models";
 import { useJob } from "@/features/jobs/hooks/use-jobs";
 import { JOB_STATUS_LABELS } from "@/features/jobs/types";
+import { useResumes } from "@/features/resumes/hooks/use-resumes";
+import { RESUME_KIND_LABELS } from "@/features/resumes/types";
 import {
   useApplication,
   useDeleteApplication,
@@ -51,6 +53,7 @@ export function ApplicationDetailPage() {
   const navigate = useNavigate();
   const { data: application, isLoading } = useApplication(applicationId);
   const { data: job } = useJob(application?.jobId ?? undefined);
+  const { data: resumes } = useResumes();
   const updateApplication = useUpdateApplication();
   const deleteApplication = useDeleteApplication();
   // null = untouched (show the server value); string = user's unsaved draft.
@@ -240,7 +243,31 @@ export function ApplicationDetailPage() {
             <CardHeader>
               <CardTitle className="text-base">Documents</CardTitle>
             </CardHeader>
-            <CardContent className="flex flex-col gap-2">
+            <CardContent className="flex flex-col gap-3">
+              <div className="space-y-2">
+                <Label>Attached resume</Label>
+                <Select
+                  value={application.resumeId ?? "NONE"}
+                  onValueChange={(value) =>
+                    updateApplication.mutate({
+                      id: application.id,
+                      resumeId: value === "NONE" ? null : value,
+                    })
+                  }
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="Select a resume…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="NONE">None</SelectItem>
+                    {(resumes ?? []).map((resume) => (
+                      <SelectItem key={resume.id} value={resume.id}>
+                        {resume.label} ({RESUME_KIND_LABELS[resume.kind]})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <Button variant="outline" asChild>
                 <Link to={`/applications/${application.id}/resume`}>
                   <FileText className="size-4" aria-hidden />
