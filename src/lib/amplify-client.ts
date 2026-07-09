@@ -24,3 +24,15 @@ export function unwrap<T>(result: DataEnvelope<T>): T {
   }
   return result.data;
 }
+
+/**
+ * Like unwrap, but for operations that must return data (create/update/
+ * custom queries): missing data becomes an error instead of null.
+ */
+export function unwrapRequired<T>(result: DataEnvelope<T | null | undefined>): T {
+  const data = unwrap(result);
+  if (data === null || data === undefined) {
+    throw new Error("The operation returned no data");
+  }
+  return data;
+}

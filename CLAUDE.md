@@ -23,13 +23,16 @@ Long-term production-quality codebase; prefer maintainability over cleverness.
   to `"SAVED"`, in their create services.
 - **Schema enums are semi-frozen.** Changing enum values is a breaking
   Amplify schema change; think twice.
-- **AI is provider-agnostic.** All AI work goes through `src/services/ai/`
-  (`AiProvider` interface). The rest of the app never knows which provider
-  is active. Cloud provider API keys must never reach browser code — cloud
-  calls go through an Amplify Function proxy (later milestone). Prompts are
-  versioned in `src/services/ai/prompts/` and must embed the
-  anti-fabrication constraint (never invent experience, employers, dates,
-  or skills).
+- **AI is provider-agnostic.** Cloud provider API keys must never reach
+  browser code — cloud AI calls go through Amplify Functions exposed as
+  custom queries (see `amplify/functions/extract-job/` + the `extractJob`
+  query; the frontend reaches it only via a feature service). Secrets come
+  from `secret("...")` in the function resource, never from code or env
+  files. Prompts are versioned (`job-extract.v1` style comments) and must
+  embed the anti-fabrication constraint (never invent experience,
+  employers, dates, or skills; null/blank for missing info). The
+  `src/services/ai/` browser abstraction is reserved for local providers
+  (Ollama/LM Studio) and future settings-driven routing.
 
 ## UI conventions
 

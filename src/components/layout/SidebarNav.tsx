@@ -1,6 +1,7 @@
 import { NavLink } from "react-router";
 import {
   Briefcase,
+  CalendarDays,
   FileStack,
   FileText,
   LayoutDashboard,
@@ -20,6 +21,7 @@ interface NavItem {
 
 const navItems: readonly NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
+  { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/jobs", label: "Jobs", icon: Briefcase },
   { to: "/applications", label: "Applications", icon: FileStack },
   { to: "/resumes", label: "Resumes", icon: FileText },

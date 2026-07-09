@@ -26,7 +26,17 @@ AppSync/DynamoDB data) · provider-agnostic AI layer (later milestone).
 ## Getting started
 
 Prerequisites: Node ≥ 20.20, npm ≥ 10.8, AWS credentials configured
-(`aws configure` or SSO) for the sandbox.
+(`aws configure` or SSO) for the sandbox, and a Gemini API key
+(aistudio.google.com/apikey) for AI job extraction.
+
+Set the Gemini key as an Amplify secret (never in code or .env):
+
+```bash
+# local sandbox (prompts for the value)
+npx ampx sandbox secret set GEMINI_API_KEY
+
+# production: Amplify Console → job-os app → Secrets → add GEMINI_API_KEY
+```
 
 ```bash
 npm install

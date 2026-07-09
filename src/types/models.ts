@@ -13,3 +13,6 @@ export type Recruiter = Schema["Recruiter"]["type"];
 export type JobStatus = NonNullable<Job["status"]>;
 export type ApplicationStatus = NonNullable<Application["status"]>;
 export type DocumentKind = NonNullable<Resume["kind"]>;
+
+/** Result of the AI job extraction query (fields null when absent). */
+export type JobExtraction = Schema["JobExtraction"]["type"];

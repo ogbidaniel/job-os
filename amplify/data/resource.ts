@@ -1,4 +1,5 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { extractJob } from "../functions/extract-job/resource";
 
 /**
  * Job OS data model.
@@ -80,6 +81,28 @@ const schema = a.schema({
       applications: a.hasMany("Application", "coverLetterId"),
     })
     .authorization((allow) => [allow.owner()]),
+
+  /** Result shape of AI job extraction; fields absent from the pasted
+   *  posting come back null (anti-fabrication rule in the handler). */
+  JobExtraction: a.customType({
+    company: a.string(),
+    title: a.string(),
+    location: a.string(),
+    salary: a.string(),
+    description: a.string(),
+    requirements: a.string(),
+    applicationUrl: a.string(),
+    postedAt: a.string(),
+  }),
+
+  extractJob: a
+    .query()
+    // "today" = the browser's local calendar date, for resolving
+    // relative posting dates ("8 hours ago") in the user's timezone.
+    .arguments({ text: a.string().required(), today: a.string() })
+    .returns(a.ref("JobExtraction"))
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(extractJob)),
 
   Recruiter: a
     .model({
