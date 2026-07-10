@@ -2,6 +2,7 @@ import { createBrowserRouter } from "react-router";
 import { AppShell } from "@/components/layout/AppShell";
 import { CalendarPage } from "@/features/calendar/pages/CalendarPage";
 import { DashboardPage } from "@/features/dashboard/pages/DashboardPage";
+import { ProfilePage } from "@/features/profile/pages/ProfilePage";
 import { JobsPage } from "@/features/jobs/pages/JobsPage";
 import { JobDetailPage } from "@/features/jobs/pages/JobDetailPage";
 import { ApplicationsPage } from "@/features/applications/pages/ApplicationsPage";
@@ -23,6 +24,7 @@ export const router = createBrowserRouter([
     element: <AppShell />,
     children: [
       { index: true, element: <DashboardPage /> },
+      { path: "profile", element: <ProfilePage /> },
       { path: "calendar", element: <CalendarPage /> },
       { path: "jobs", element: <JobsPage /> },
       { path: "jobs/:jobId", element: <JobDetailPage /> },

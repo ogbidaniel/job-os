@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { queryKeys } from "@/lib/query-keys";
+import type { Job } from "@/types/models";
 import {
   jobsService,
   type JobCreateInput,
   type JobUpdateInput,
 } from "../api/jobs-service";
+import { buildJobContext } from "../lib/job-context";
 
 export function useJobs() {
   return useQuery({
@@ -62,5 +64,34 @@ export function useExtractJob() {
   return useMutation({
     mutationFn: (text: string) => jobsService.extractFromText(text),
     onError: (error) => toast.error(`Extraction failed: ${error.message}`),
+  });
+}
+
+export function useScoreFit() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      job,
+      profileContext,
+    }: {
+      job: Job;
+      profileContext: string;
+    }) => {
+      const report = await jobsService.scoreFit(
+        buildJobContext(job),
+        profileContext,
+      );
+      await jobsService.update({
+        id: job.id,
+        fitScore: report.score,
+        fitReport: JSON.stringify(report),
+      });
+      return report;
+    },
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.jobs.all });
+      toast.success("Fit score updated");
+    },
+    onError: (error) => toast.error(`Scoring failed: ${error.message}`),
   });
 }

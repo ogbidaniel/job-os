@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
-import { Briefcase, ExternalLink, FilePlus2, Pencil, Trash2 } from "lucide-react";
+import {
+  Briefcase,
+  ChevronDown,
+  ChevronUp,
+  ExternalLink,
+  FilePlus2,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,8 +31,39 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { formatDate } from "@/lib/dates";
 import { useCreateApplication } from "@/features/applications/hooks/use-applications";
 import { EditJobDialog } from "../components/EditJobDialog";
+import { FitScoreCard } from "../components/FitScoreCard";
 import { useDeleteJob, useJob } from "../hooks/use-jobs";
+import { condenseLocation } from "../lib/job-context";
 import { JOB_STATUS_LABELS } from "../types";
+
+function cleanList(
+  items: ReadonlyArray<string | null> | null | undefined,
+): string[] {
+  return (items ?? []).filter((item): item is string => Boolean(item));
+}
+
+interface BulletCardProps {
+  title: string;
+  items: string[];
+}
+
+function BulletCard({ title, items }: BulletCardProps) {
+  if (items.length === 0) return null;
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-lg">{title}</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ul className="list-disc space-y-2 pl-5 text-base leading-7">
+          {items.map((item) => (
+            <li key={item}>{item}</li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
+  );
+}
 
 export function JobDetailPage() {
   const { jobId } = useParams<"jobId">();
@@ -34,6 +73,7 @@ export function JobDetailPage() {
   const deleteJob = useDeleteJob();
   const [editOpen, setEditOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [showFullPosting, setShowFullPosting] = useState(false);
 
   if (isLoading) {
     return (
@@ -55,6 +95,16 @@ export function JobDetailPage() {
     );
   }
 
+  const location = condenseLocation(job.location);
+  const responsibilities = cleanList(job.responsibilities);
+  const requiredSkills = cleanList(job.requiredSkills);
+  const preferredSkills = cleanList(job.preferredSkills);
+  const hasStructured =
+    Boolean(job.summary) ||
+    responsibilities.length > 0 ||
+    requiredSkills.length > 0;
+  const fullPosting = job.rawPosting ?? job.description;
+
   function handleCreateApplication() {
     createApplication.mutate(
       { jobId: job!.id },
@@ -63,16 +113,17 @@ export function JobDetailPage() {
   }
 
   function handleDelete() {
-    deleteJob.mutate(job!.id, {
-      onSuccess: () => navigate("/jobs"),
-    });
+    deleteJob.mutate(job!.id, { onSuccess: () => navigate("/jobs") });
   }
 
   return (
     <>
       <PageHeader
         title={job.title}
-        description={[job.company, job.location].filter(Boolean).join(" · ")}
+        description={
+          [job.company, location.display].filter(Boolean).join(" · ") ||
+          undefined
+        }
         actions={
           <>
             <Button
@@ -99,9 +150,14 @@ export function JobDetailPage() {
           <CardContent className="grid gap-4 pt-6 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <p className="text-sm text-muted-foreground">Status</p>
-              <Badge variant="secondary" className="mt-1">
-                {job.status ? JOB_STATUS_LABELS[job.status] : "—"}
-              </Badge>
+              <div className="mt-1 flex flex-wrap gap-1.5">
+                <Badge variant="secondary">
+                  {job.status ? JOB_STATUS_LABELS[job.status] : "—"}
+                </Badge>
+                {job.sourceSite ? (
+                  <Badge variant="outline">{job.sourceSite}</Badge>
+                ) : null}
+              </div>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Posted on</p>
@@ -137,32 +193,89 @@ export function JobDetailPage() {
                 {!job.applicationUrl && !job.sourceUrl ? "—" : null}
               </div>
             </div>
+            {location.display !== location.full ? (
+              <div className="sm:col-span-2 lg:col-span-4">
+                <p className="text-sm text-muted-foreground">All locations</p>
+                <p className="mt-1 text-sm">{location.full}</p>
+              </div>
+            ) : null}
           </CardContent>
         </Card>
 
-        {job.description ? (
+        <FitScoreCard job={job} />
+
+        {job.summary ? (
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">Description</CardTitle>
+              <CardTitle className="text-lg">About this job</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="max-w-prose text-sm leading-relaxed whitespace-pre-wrap">
-                {job.description}
-              </p>
+              <p className="text-base leading-7">{job.summary}</p>
             </CardContent>
           </Card>
         ) : null}
 
-        {job.requirements ? (
+        <BulletCard title="What you'll do" items={responsibilities} />
+        <BulletCard title="Required skills" items={requiredSkills} />
+        <BulletCard title="Preferred skills" items={preferredSkills} />
+
+        {!hasStructured ? (
+          <>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Description</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  This job was saved before structured extraction. Open Edit,
+                  re-paste the posting, and hit "Extract with AI" to upgrade it.
+                </p>
+                {job.description ? (
+                  <p className="max-w-prose text-base leading-7 whitespace-pre-wrap">
+                    {job.description}
+                  </p>
+                ) : null}
+              </CardContent>
+            </Card>
+            {job.requirements ? (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg">Requirements</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="max-w-prose text-base leading-7 whitespace-pre-wrap">
+                    {job.requirements}
+                  </p>
+                </CardContent>
+              </Card>
+            ) : null}
+          </>
+        ) : null}
+
+        {hasStructured && fullPosting ? (
           <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Requirements</CardTitle>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-lg">Full posting</CardTitle>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowFullPosting((current) => !current)}
+              >
+                {showFullPosting ? (
+                  <ChevronUp className="size-4" aria-hidden />
+                ) : (
+                  <ChevronDown className="size-4" aria-hidden />
+                )}
+                {showFullPosting ? "Hide" : "Show"}
+              </Button>
             </CardHeader>
-            <CardContent>
-              <p className="max-w-prose text-sm leading-relaxed whitespace-pre-wrap">
-                {job.requirements}
-              </p>
-            </CardContent>
+            {showFullPosting ? (
+              <CardContent>
+                <p className="max-w-prose text-sm leading-relaxed whitespace-pre-wrap">
+                  {fullPosting}
+                </p>
+              </CardContent>
+            ) : null}
           </Card>
         ) : null}
       </div>

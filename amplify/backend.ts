@@ -2,11 +2,15 @@ import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
 import { extractJob } from './functions/extract-job/resource';
+import { extractProfile } from './functions/extract-profile/resource';
+import { scoreFit } from './functions/score-fit/resource';
 
 const backend = defineBackend({
   auth,
   data,
   extractJob,
+  extractProfile,
+  scoreFit,
 });
 
 // Single-user app and the owner accounts exist: close Cognito self-signup

@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { dateInputToIso, isoToDateInput } from "@/lib/dates";
-import type { Job, JobExtraction, JobStatus } from "@/types/models";
-import type { JobCreateInput } from "../api/jobs-service";
+import type { Job, JobStatus } from "@/types/models";
+import type { JobCreateInput, JobExtraction } from "../api/jobs-service";
 import { JOB_STATUS_ORDER } from "../types";
 
 const optionalUrl = z.union([
@@ -17,6 +17,11 @@ export const jobFormSchema = z.object({
   postedAt: z.string(), // yyyy-MM-dd or empty
   applicationUrl: optionalUrl,
   sourceUrl: optionalUrl,
+  sourceSite: z.string(),
+  summary: z.string(),
+  responsibilities: z.string(), // one item per line
+  requiredSkills: z.string(), // one item per line
+  preferredSkills: z.string(), // one item per line
   description: z.string(),
   requirements: z.string(),
   status: z.enum(JOB_STATUS_ORDER as readonly [JobStatus, ...JobStatus[]]),
@@ -32,12 +37,29 @@ export const emptyJobFormValues: JobFormValues = {
   postedAt: "",
   applicationUrl: "",
   sourceUrl: "",
+  sourceSite: "",
+  summary: "",
+  responsibilities: "",
+  requiredSkills: "",
+  preferredSkills: "",
   description: "",
   requirements: "",
   status: "NEW",
 };
 
-/** Merge AI-extracted fields into form values; nulls leave fields as-is. */
+function linesToArray(value: string): string[] | null {
+  const items = value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  return items.length > 0 ? items : null;
+}
+
+function arrayToLines(items: ReadonlyArray<string | null> | null | undefined): string {
+  return (items ?? []).filter((item): item is string => Boolean(item)).join("\n");
+}
+
+/** Merge AI-extracted fields into form values; empty results leave fields as-is. */
 export function extractionToFormValues(
   extraction: JobExtraction,
   current: JobFormValues,
@@ -50,8 +72,21 @@ export function extractionToFormValues(
     salary: extraction.salary ?? current.salary,
     postedAt: extraction.postedAt ?? current.postedAt,
     applicationUrl: extraction.applicationUrl ?? current.applicationUrl,
+    sourceSite: extraction.sourceSite ?? current.sourceSite,
+    summary: extraction.summary ?? current.summary,
+    responsibilities:
+      extraction.responsibilities.length > 0
+        ? extraction.responsibilities.join("\n")
+        : current.responsibilities,
+    requiredSkills:
+      extraction.requiredSkills.length > 0
+        ? extraction.requiredSkills.join("\n")
+        : current.requiredSkills,
+    preferredSkills:
+      extraction.preferredSkills.length > 0
+        ? extraction.preferredSkills.join("\n")
+        : current.preferredSkills,
     description: extraction.description ?? current.description,
-    requirements: extraction.requirements ?? current.requirements,
   };
 }
 
@@ -64,6 +99,11 @@ export function jobToFormValues(job: Job): JobFormValues {
     postedAt: isoToDateInput(job.postedAt),
     applicationUrl: job.applicationUrl ?? "",
     sourceUrl: job.sourceUrl ?? "",
+    sourceSite: job.sourceSite ?? "",
+    summary: job.summary ?? "",
+    responsibilities: arrayToLines(job.responsibilities),
+    requiredSkills: arrayToLines(job.requiredSkills),
+    preferredSkills: arrayToLines(job.preferredSkills),
     description: job.description ?? "",
     requirements: job.requirements ?? "",
     status: job.status ?? "NEW",
@@ -79,6 +119,11 @@ export function formValuesToInput(values: JobFormValues): JobCreateInput {
     postedAt: dateInputToIso(values.postedAt),
     applicationUrl: values.applicationUrl || null,
     sourceUrl: values.sourceUrl || null,
+    sourceSite: values.sourceSite || null,
+    summary: values.summary || null,
+    responsibilities: linesToArray(values.responsibilities),
+    requiredSkills: linesToArray(values.requiredSkills),
+    preferredSkills: linesToArray(values.preferredSkills),
     description: values.description || null,
     requirements: values.requirements || null,
     status: values.status,

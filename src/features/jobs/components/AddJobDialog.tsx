@@ -2,9 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Sparkles } from "lucide-react";
 import { toast } from "sonner";
-import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +11,6 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import { useCreateJob, useExtractJob } from "../hooks/use-jobs";
 import {
   emptyJobFormValues,
@@ -23,6 +20,7 @@ import {
   type JobFormValues,
 } from "../lib/job-form";
 import { JobForm } from "./JobForm";
+import { PasteExtract } from "./PasteExtract";
 
 interface AddJobDialogProps {
   open: boolean;
@@ -50,14 +48,17 @@ export function AddJobDialog({ open, onOpenChange }: AddJobDialogProps) {
   }
 
   function handleSubmit(values: JobFormValues) {
-    createJob.mutate(formValuesToInput(values), {
-      onSuccess: (job) => {
-        onOpenChange(false);
-        form.reset(emptyJobFormValues);
-        setPasteText("");
-        navigate(`/jobs/${job.id}`);
+    createJob.mutate(
+      { ...formValuesToInput(values), rawPosting: pasteText || null },
+      {
+        onSuccess: (job) => {
+          onOpenChange(false);
+          form.reset(emptyJobFormValues);
+          setPasteText("");
+          navigate(`/jobs/${job.id}`);
+        },
       },
-    });
+    );
   }
 
   return (
@@ -70,27 +71,12 @@ export function AddJobDialog({ open, onOpenChange }: AddJobDialogProps) {
             yourself. Review everything before saving.
           </DialogDescription>
         </DialogHeader>
-        <div className="space-y-2">
-          <Textarea
-            value={pasteText}
-            onChange={(event) => setPasteText(event.target.value)}
-            placeholder="Paste the full job posting here (from LinkedIn, Indeed, a careers page, …)"
-            rows={5}
-          />
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleExtract}
-            disabled={!pasteText.trim() || extractJob.isPending}
-          >
-            {extractJob.isPending ? (
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-            ) : (
-              <Sparkles className="size-4" aria-hidden />
-            )}
-            {extractJob.isPending ? "Extracting…" : "Extract with AI"}
-          </Button>
-        </div>
+        <PasteExtract
+          value={pasteText}
+          onChange={setPasteText}
+          onExtract={handleExtract}
+          extracting={extractJob.isPending}
+        />
         <Separator />
         <JobForm
           form={form}

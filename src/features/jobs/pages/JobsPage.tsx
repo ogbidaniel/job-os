@@ -22,11 +22,13 @@ import {
 } from "@/components/ui/table";
 import { EmptyState } from "@/components/layout/EmptyState";
 import { PageHeader } from "@/components/layout/PageHeader";
+import { cn } from "@/lib/utils";
 import { formatDate } from "@/lib/dates";
 import type { JobStatus } from "@/types/models";
 import { AddJobDialog } from "../components/AddJobDialog";
 import { useJobs } from "../hooks/use-jobs";
 import { filterJobs } from "../lib/filter-jobs";
+import { fitScoreBadgeClasses } from "../lib/job-context";
 import { JOB_STATUS_LABELS, JOB_STATUS_ORDER } from "../types";
 
 export function JobsPage() {
@@ -127,6 +129,7 @@ export function JobsPage() {
                 <TableHead>Location</TableHead>
                 <TableHead>Posted</TableHead>
                 <TableHead>Status</TableHead>
+                <TableHead>Fit</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -152,6 +155,20 @@ export function JobsPage() {
                     <Badge variant="secondary">
                       {job.status ? JOB_STATUS_LABELS[job.status] : "—"}
                     </Badge>
+                  </TableCell>
+                  <TableCell>
+                    {job.fitScore != null ? (
+                      <Badge
+                        className={cn(
+                          "border-transparent tabular-nums",
+                          fitScoreBadgeClasses(job.fitScore),
+                        )}
+                      >
+                        {job.fitScore}
+                      </Badge>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                 </TableRow>
               ))}

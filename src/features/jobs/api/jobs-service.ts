@@ -1,6 +1,30 @@
 import { format } from "date-fns";
 import { client, unwrap, unwrapRequired } from "@/lib/amplify-client";
-import type { Job, JobExtraction } from "@/types/models";
+import type { Job } from "@/types/models";
+
+/** Result of job-extract.v3 (JSON transported as a string). */
+export interface JobExtraction {
+  company: string | null;
+  title: string | null;
+  location: string | null;
+  salary: string | null;
+  summary: string | null;
+  responsibilities: string[];
+  requiredSkills: string[];
+  preferredSkills: string[];
+  description: string | null;
+  applicationUrl: string | null;
+  postedAt: string | null;
+  sourceSite: string | null;
+}
+
+/** Result of fit-score.v1 (also stored on Job.fitReport as JSON). */
+export interface FitReport {
+  score: number;
+  summary: string;
+  matchedSkills: string[];
+  gaps: string[];
+}
 
 export type JobCreateInput = Pick<Job, "company" | "title"> &
   Partial<
@@ -14,6 +38,14 @@ export type JobCreateInput = Pick<Job, "company" | "title"> &
       | "sourceUrl"
       | "postedAt"
       | "status"
+      | "summary"
+      | "responsibilities"
+      | "requiredSkills"
+      | "preferredSkills"
+      | "sourceSite"
+      | "rawPosting"
+      | "fitScore"
+      | "fitReport"
     >
   >;
 
@@ -51,7 +83,7 @@ export const jobsService = {
 
   /** AI extraction (Gemini behind an Amplify Function; key never in browser). */
   async extractFromText(text: string): Promise<JobExtraction> {
-    return unwrapRequired(
+    const raw = unwrapRequired(
       await client.queries.extractJob({
         text,
         // Local calendar date so "posted 3 days ago" resolves in the
@@ -59,5 +91,17 @@ export const jobsService = {
         today: format(new Date(), "yyyy-MM-dd"),
       }),
     );
+    return JSON.parse(raw) as JobExtraction;
+  },
+
+  /** AI fit scoring against the user's profile. */
+  async scoreFit(
+    jobContext: string,
+    profileContext: string,
+  ): Promise<FitReport> {
+    const raw = unwrapRequired(
+      await client.queries.scoreFit({ jobContext, profileContext }),
+    );
+    return JSON.parse(raw) as FitReport;
   },
 };

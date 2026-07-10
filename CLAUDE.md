@@ -25,14 +25,26 @@ Long-term production-quality codebase; prefer maintainability over cleverness.
   Amplify schema change; think twice.
 - **AI is provider-agnostic.** Cloud provider API keys must never reach
   browser code — cloud AI calls go through Amplify Functions exposed as
-  custom queries (see `amplify/functions/extract-job/` + the `extractJob`
-  query; the frontend reaches it only via a feature service). Secrets come
-  from `secret("...")` in the function resource, never from code or env
-  files. Prompts are versioned (`job-extract.v1` style comments) and must
-  embed the anti-fabrication constraint (never invent experience,
-  employers, dates, or skills; null/blank for missing info). The
+  custom queries (extract-job, extract-profile, score-fit), sharing
+  `amplify/functions/shared/gemini.ts`; the frontend reaches them only via
+  feature services. AI queries return JSON **strings**; the feature
+  service parses and types them. Secrets come from `secret("...")` in the
+  function resource, never from code or env files. Prompts are versioned
+  in handler comments (job-extract.v3, profile-extract.v1, fit-score.v1)
+  and must embed the anti-fabrication constraint (never invent experience,
+  employers, dates, or skills; null/blank for missing info; verbatim
+  copying — the ONLY AI-written fields are explicit summaries). The
   `src/services/ai/` browser abstraction is reserved for local providers
   (Ollama/LM Studio) and future settings-driven routing.
+- **Job records are structured**: summary + responsibilities/
+  requiredSkills/preferredSkills arrays + sourceSite + rawPosting (the
+  original paste, kept for provenance and re-extraction). Legacy records
+  may only have description/requirements — UI must degrade gracefully.
+- **The Profile feature is the AI's source of truth about the user**
+  (`src/features/profile/`): Profile singleton + Experience + Evidence.
+  Fit scoring and resume generation compile it via
+  `buildProfileContext()`; never let AI features claim skills that are
+  not in the profile vault.
 
 ## UI conventions
 

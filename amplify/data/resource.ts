@@ -1,5 +1,7 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
 import { extractJob } from "../functions/extract-job/resource";
+import { extractProfile } from "../functions/extract-profile/resource";
+import { scoreFit } from "../functions/score-fit/resource";
 
 /**
  * Job OS data model.
@@ -41,6 +43,19 @@ const schema = a.schema({
       // When the posting was published (record save date is createdAt).
       postedAt: a.datetime(),
       status: a.ref("JobStatus"),
+      // Structured extraction (job-extract.v3): summary is the one
+      // AI-written field; the lists are verbatim posting bullets.
+      summary: a.string(),
+      responsibilities: a.string().array(),
+      requiredSkills: a.string().array(),
+      preferredSkills: a.string().array(),
+      sourceSite: a.string(),
+      // The original paste, kept verbatim for provenance/re-extraction.
+      rawPosting: a.string(),
+      // AI fit vs the user's profile; fitReport is JSON
+      // { summary, matchedSkills[], gaps[] }.
+      fitScore: a.integer(),
+      fitReport: a.string(),
       applications: a.hasMany("Application", "jobId"),
     })
     .authorization((allow) => [allow.owner()]),
@@ -82,27 +97,95 @@ const schema = a.schema({
     })
     .authorization((allow) => [allow.owner()]),
 
-  /** Result shape of AI job extraction; fields absent from the pasted
-   *  posting come back null (anti-fabrication rule in the handler). */
-  JobExtraction: a.customType({
-    company: a.string(),
-    title: a.string(),
-    location: a.string(),
-    salary: a.string(),
-    description: a.string(),
-    requirements: a.string(),
-    applicationUrl: a.string(),
-    postedAt: a.string(),
-  }),
-
+  // AI queries transport JSON strings; feature services parse and type
+  // them (src/features/*/api). Fields absent from the pasted source come
+  // back null (anti-fabrication rule in the handlers).
   extractJob: a
     .query()
     // "today" = the browser's local calendar date, for resolving
     // relative posting dates ("8 hours ago") in the user's timezone.
     .arguments({ text: a.string().required(), today: a.string() })
-    .returns(a.ref("JobExtraction"))
+    .returns(a.string())
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(extractJob)),
+
+  extractProfile: a
+    .query()
+    .arguments({ text: a.string().required() })
+    .returns(a.string())
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(extractProfile)),
+
+  scoreFit: a
+    .query()
+    .arguments({
+      jobContext: a.string().required(),
+      profileContext: a.string().required(),
+    })
+    .returns(a.string())
+    .authorization((allow) => [allow.authenticated()])
+    .handler(a.handler.function(scoreFit)),
+
+  ExperienceKind: a.enum([
+    "WORK",
+    "PROJECT",
+    "EDUCATION",
+    "CERTIFICATION",
+    "VOLUNTEER",
+    "OTHER",
+  ]),
+  EvidenceKind: a.enum([
+    "CERTIFICATE",
+    "POST",
+    "VIDEO",
+    "ARTICLE",
+    "RECOMMENDATION",
+    "PAPER",
+    "OTHER",
+  ]),
+
+  Experience: a
+    .model({
+      kind: a.ref("ExperienceKind").required(),
+      title: a.string().required(),
+      organization: a.string(),
+      location: a.string(),
+      startDate: a.date(),
+      endDate: a.date(),
+      isCurrent: a.boolean(),
+      // Newline-separated bullets, kept as the user wrote them.
+      description: a.string(),
+      skills: a.string().array(),
+    })
+    .authorization((allow) => [allow.owner()]),
+
+  Evidence: a
+    .model({
+      kind: a.ref("EvidenceKind").required(),
+      title: a.string().required(),
+      url: a.url(),
+      // Where it lives: "YouTube", "LinkedIn", "arXiv", ...
+      source: a.string(),
+      date: a.date(),
+      description: a.string(),
+      skills: a.string().array(),
+    })
+    .authorization((allow) => [allow.owner()]),
+
+  /** Singleton by convention: the service get-or-creates the one record. */
+  Profile: a
+    .model({
+      fullName: a.string(),
+      headline: a.string(),
+      location: a.string(),
+      email: a.email(),
+      phone: a.string(),
+      linkedin: a.url(),
+      github: a.url(),
+      website: a.url(),
+      summary: a.string(),
+    })
+    .authorization((allow) => [allow.owner()]),
 
   Recruiter: a
     .model({

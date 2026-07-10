@@ -26,4 +26,13 @@ export const queryKeys = {
   dashboard: {
     counts: ["dashboard", "counts"] as const,
   },
+  profile: {
+    self: ["profile"] as const,
+  },
+  experiences: {
+    all: ["experiences"] as const,
+  },
+  evidence: {
+    all: ["evidence"] as const,
+  },
 } as const;
