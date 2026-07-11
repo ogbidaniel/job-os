@@ -2,10 +2,12 @@ import type { Schema } from '../../data/resource';
 import { callGeminiJson, requireApiKey } from '../shared/gemini';
 
 /**
- * Prompt version: profile-extract.v1
+ * Prompt version: profile-extract.v1.1
  * Splits a pasted master career document into the Profile singleton,
  * Experience entries, and Evidence entries. Verbatim-leaning: bullets are
  * copied as written; nothing is invented.
+ * v1.1: bullets must be newline-separated inside description (v1 joined
+ * them into one line, breaking the bullet-list rendering).
  */
 function buildPrompt(text: string): string {
   return `You split a personal career document (a "master resume" or
@@ -30,8 +32,10 @@ Return three parts:
    - startDate/endDate as ISO dates: "January 2025" → "2025-01-01",
      year-only → "YYYY-01-01"; null when absent. isCurrent = true for
      "Present"/ongoing.
-   - description: that entry's bullet points copied verbatim, joined with
-     newlines (one bullet per line, no bullet characters).
+   - description: that entry's bullet points copied verbatim. Each bullet
+     MUST be its own line: separate bullets with the newline character
+     ("\\n" inside the JSON string). Do not merge bullets into one line,
+     do not include bullet characters like "-" or "•".
    - skills: technologies/skills explicitly named in that entry's text.
 
 3. evidence — verifiable artifacts:
