@@ -1,65 +1,68 @@
 /**
- * Local dry-run of the extract-profile Lambda handler against a real
- * document. Requires GEMINI_API_KEY in the environment and a file path
- * argument. Not part of the app build; run with: npx tsx scripts/...
+ * Local dry-run of the chunked profile extraction against a real
+ * document: chunks like the client does, invokes the real Lambda handler
+ * per chunk (sequentially, with timings), merges like the client does.
+ * Requires GEMINI_API_KEY in the environment and a file path argument.
+ * Run with: npx tsx scripts/test-extract-profile.ts <file>
  */
 import { readFileSync } from "node:fs";
 import { handler } from "../amplify/functions/extract-profile/handler";
-
-interface ExtractedEntry {
-  kind: string;
-  title: string;
-  organization?: string | null;
-  source?: string | null;
-  startDate?: string | null;
-  endDate?: string | null;
-  isCurrent?: boolean | null;
-  date?: string | null;
-  url?: string | null;
-  skills: string[];
-  description?: string | null;
-}
-
-interface Extraction {
-  profile: Record<string, string | null>;
-  experiences: ExtractedEntry[];
-  evidence: ExtractedEntry[];
-}
+import {
+  chunkDocument,
+  mergeExtractions,
+} from "../src/features/profile/lib/chunk-document";
+import type { ProfileExtraction } from "../src/features/profile/api/profile-service";
 
 async function main(): Promise<void> {
   const path = process.argv[2];
   if (!path) throw new Error("usage: tsx test-extract-profile.ts <file>");
   const text = readFileSync(path, "utf8");
 
-  const raw = (await handler(
-    // Only `arguments` is read by the handler.
-    { arguments: { text } } as Parameters<typeof handler>[0],
-    {} as never,
-    () => undefined,
-  )) as string;
+  const chunks = chunkDocument(text);
+  console.log(
+    `document: ${text.length} chars -> ${chunks.length} chunks (${chunks
+      .map((chunk) => chunk.length)
+      .join(", ")} chars)`,
+  );
 
-  const result = JSON.parse(raw) as Extraction;
+  const parts: ProfileExtraction[] = [];
+  for (const [index, chunk] of chunks.entries()) {
+    const startedAt = Date.now();
+    const raw = (await handler(
+      { arguments: { text: chunk } } as Parameters<typeof handler>[0],
+      {} as never,
+      () => undefined,
+    )) as string;
+    const seconds = ((Date.now() - startedAt) / 1000).toFixed(1);
+    const part = JSON.parse(raw) as ProfileExtraction;
+    parts.push(part);
+    console.log(
+      `chunk ${index + 1}/${chunks.length}: ${seconds}s — ${part.experiences.length} experiences, ${part.evidence.length} evidence`,
+    );
+  }
 
-  console.log("=== PROFILE ===");
+  const result = mergeExtractions(parts);
+
+  console.log("\n=== MERGED PROFILE ===");
   for (const [key, value] of Object.entries(result.profile)) {
     console.log(`${key}: ${value ?? "(null)"}`);
   }
 
-  console.log(`\n=== EXPERIENCES (${result.experiences.length}) ===`);
+  console.log(`\n=== MERGED EXPERIENCES (${result.experiences.length}) ===`);
   for (const item of result.experiences) {
     const dates = [item.startDate, item.isCurrent ? "present" : item.endDate]
       .filter(Boolean)
       .join(" to ");
     const bullets = (item.description ?? "").split("\n").filter(Boolean).length;
     console.log(
-      `[${item.kind}] ${item.title}${item.organization ? ` @ ${item.organization}` : ""} (${dates || "no dates"}) — ${bullets} bullets, skills: ${item.skills.join(", ") || "none"}`,
+      `[${item.kind}] ${item.title}${item.organization ? ` @ ${item.organization}` : ""} (${dates || "no dates"}) — ${bullets} bullets`,
     );
   }
 
-  console.log(`\n=== EVIDENCE (${result.evidence.length}) ===`);
+  console.log(`\n=== MERGED EVIDENCE (${result.evidence.length}) ===`);
   for (const item of result.evidence) {
     console.log(
-      `[${item.kind}] ${item.title}${item.source ? ` (${item.source})` : ""}${item.date ? ` ${item.date}` : ""}${item.url ? ` url=${item.url}` : ""}`,
+      `[${item.kind}] ${item.title}${item.source ? ` (${item.source})` : ""}${item.url ? ` url=${item.url}` : ""}`,
     );
   }
 }

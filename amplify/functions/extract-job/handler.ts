@@ -2,12 +2,15 @@ import type { Schema } from '../../data/resource';
 import { callGeminiJson, requireApiKey } from '../shared/gemini';
 
 /**
- * Prompt version: job-extract.v3
+ * Prompt version: job-extract.v3.1
  * v3: structured sections (summary + verbatim bullet arrays), job-site
  * signature awareness (LinkedIn/Workday/Indeed/...), sourceSite detection.
  * `summary` is the ONE field the model writes itself; everything else is
  * copied verbatim. Anti-fabrication is non-negotiable: only facts present
  * in the pasted text; null/empty for anything missing.
+ * v3.1: stop echoing the full description back (the client already keeps
+ * the paste as rawPosting) — halves output tokens and keeps long postings
+ * inside AppSync's 30s query limit.
  */
 function buildPrompt(text: string, today: string): string {
   return `You extract structured data from job postings copied from job
@@ -55,8 +58,6 @@ FIELD RULES:
   one per item.
 - preferredSkills: preferred/bonus/nice-to-have qualifications bullets,
   verbatim, one per item ("Bonus:" prefixed items belong here).
-- description: the complete job description body copied verbatim with its
-  original line breaks (excluding site noise). This is the archival copy.
 - applicationUrl: only if an explicit application/job URL appears.
 - postedAt: resolve posting-date markers to ISO (YYYY-MM-DD) using
   today's date. "8 hours ago"/"today" → today; "Reposted 3 days ago" → 3
@@ -80,7 +81,6 @@ const responseSchema = {
     responsibilities: { type: 'ARRAY', items: { type: 'STRING' } },
     requiredSkills: { type: 'ARRAY', items: { type: 'STRING' } },
     preferredSkills: { type: 'ARRAY', items: { type: 'STRING' } },
-    description: { type: 'STRING', nullable: true },
     applicationUrl: { type: 'STRING', nullable: true },
     postedAt: { type: 'STRING', nullable: true },
     sourceSite: { type: 'STRING', nullable: true },
@@ -94,7 +94,6 @@ const responseSchema = {
     'responsibilities',
     'requiredSkills',
     'preferredSkills',
-    'description',
     'applicationUrl',
     'postedAt',
     'sourceSite',

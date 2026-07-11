@@ -2,17 +2,23 @@ import type { Schema } from '../../data/resource';
 import { callGeminiJson, requireApiKey } from '../shared/gemini';
 
 /**
- * Prompt version: profile-extract.v1.1
+ * Prompt version: profile-extract.v1.2
  * Splits a pasted master career document into the Profile singleton,
  * Experience entries, and Evidence entries. Verbatim-leaning: bullets are
  * copied as written; nothing is invented.
  * v1.1: bullets must be newline-separated inside description (v1 joined
  * them into one line, breaking the bullet-list rendering).
+ * v1.2: the input may be one CHUNK of a larger document (the client
+ * splits big documents to stay inside AppSync's 30s query limit).
  */
 function buildPrompt(text: string): string {
   return `You split a personal career document (a "master resume" or
 career profile) into structured records. Copy wording verbatim from the
 document — never invent, embellish, or infer facts that are not written.
+
+The text may be only a PART of a larger document. Extract whatever is
+present; leave everything else null/empty. Do not remark on missing
+sections.
 
 Return three parts:
 

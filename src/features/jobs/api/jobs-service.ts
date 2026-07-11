@@ -12,7 +12,8 @@ export interface JobExtraction {
   responsibilities: string[];
   requiredSkills: string[];
   preferredSkills: string[];
-  description: string | null;
+  /** No longer returned since v3.1 (the paste is kept as rawPosting). */
+  description?: string | null;
   applicationUrl: string | null;
   postedAt: string | null;
   sourceSite: string | null;

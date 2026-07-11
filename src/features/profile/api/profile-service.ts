@@ -6,6 +6,7 @@ import type {
   ExperienceKind,
   Profile,
 } from "@/types/models";
+import { chunkDocument, mergeExtractions } from "../lib/chunk-document";
 import { EVIDENCE_KIND_ORDER, EXPERIENCE_KIND_ORDER } from "../types";
 
 export type ProfileUpdateInput = { id: string } & Partial<
@@ -91,9 +92,22 @@ export const profileService = {
     return unwrapRequired(await client.models.Profile.update(input));
   },
 
+  /**
+   * Chunked extraction: AppSync caps a single query at 30s, which a full
+   * master document blows past. Sections are extracted in parallel and
+   * merged (see lib/chunk-document.ts).
+   */
   async extractFromText(text: string): Promise<ProfileExtraction> {
-    const raw = unwrapRequired(await client.queries.extractProfile({ text }));
-    return JSON.parse(raw) as ProfileExtraction;
+    const chunks = chunkDocument(text);
+    const parts = await Promise.all(
+      chunks.map(async (chunk) => {
+        const raw = unwrapRequired(
+          await client.queries.extractProfile({ text: chunk }),
+        );
+        return JSON.parse(raw) as ProfileExtraction;
+      }),
+    );
+    return mergeExtractions(parts);
   },
 
   /** Bulk-creates the reviewed selection from a profile extraction. */
