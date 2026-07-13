@@ -1,15 +1,15 @@
 import { defineBackend } from '@aws-amplify/backend';
 import { auth } from './auth/resource';
 import { data } from './data/resource';
+import { compileLatex } from './functions/compile-latex/resource';
 import { extractJob } from './functions/extract-job/resource';
-import { extractProfile } from './functions/extract-profile/resource';
 import { scoreFit } from './functions/score-fit/resource';
 
 const backend = defineBackend({
   auth,
   data,
+  compileLatex,
   extractJob,
-  extractProfile,
   scoreFit,
 });
 

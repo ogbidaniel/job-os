@@ -14,6 +14,7 @@ export const queryKeys = {
   resumes: {
     all: ["resumes"] as const,
     detail: (id: string) => ["resumes", id] as const,
+    category: (label: string) => ["resumes", "category", label] as const,
   },
   coverLetters: {
     all: ["cover-letters"] as const,
@@ -25,14 +26,5 @@ export const queryKeys = {
   },
   dashboard: {
     counts: ["dashboard", "counts"] as const,
-  },
-  profile: {
-    self: ["profile"] as const,
-  },
-  experiences: {
-    all: ["experiences"] as const,
-  },
-  evidence: {
-    all: ["evidence"] as const,
   },
 } as const;

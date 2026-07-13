@@ -1,6 +1,6 @@
 import { type ClientSchema, a, defineData } from "@aws-amplify/backend";
+import { compileLatex } from "../functions/compile-latex/resource";
 import { extractJob } from "../functions/extract-job/resource";
-import { extractProfile } from "../functions/extract-profile/resource";
 import { scoreFit } from "../functions/score-fit/resource";
 
 /**
@@ -109,12 +109,13 @@ const schema = a.schema({
     .authorization((allow) => [allow.authenticated()])
     .handler(a.handler.function(extractJob)),
 
-  extractProfile: a
+  /** LaTeX → PDF; returns JSON { pdfBase64 } or { error, log }. */
+  compileLatex: a
     .query()
-    .arguments({ text: a.string().required() })
+    .arguments({ source: a.string().required() })
     .returns(a.string())
     .authorization((allow) => [allow.authenticated()])
-    .handler(a.handler.function(extractProfile)),
+    .handler(a.handler.function(compileLatex)),
 
   scoreFit: a
     .query()

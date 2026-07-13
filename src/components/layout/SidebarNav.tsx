@@ -7,7 +7,6 @@ import {
   LayoutDashboard,
   Mail,
   Settings,
-  User,
   Users,
   type LucideIcon,
 } from "lucide-react";
@@ -22,7 +21,6 @@ interface NavItem {
 
 const navItems: readonly NavItem[] = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
-  { to: "/profile", label: "Profile", icon: User },
   { to: "/calendar", label: "Calendar", icon: CalendarDays },
   { to: "/jobs", label: "Jobs", icon: Briefcase },
   { to: "/applications", label: "Applications", icon: FileStack },

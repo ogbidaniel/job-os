@@ -14,3 +14,13 @@ export function toFilenameStem(label: string, fallback: string): string {
   const stem = label.replace(/[^\w\- ]+/g, "").trim();
   return stem || fallback;
 }
+
+/** Downloads a Blob (e.g. a compiled PDF) as a file. */
+export function downloadBlob(filename: string, blob: Blob): void {
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}

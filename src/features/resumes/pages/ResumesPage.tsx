@@ -1,91 +1,74 @@
 import { useState } from "react";
-import { useNavigate } from "react-router";
-import { FileText, Plus } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { EmptyState } from "@/components/layout/EmptyState";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { PageHeader } from "@/components/layout/PageHeader";
-import { formatDate } from "@/lib/dates";
-import { NewResumeDialog } from "../components/NewResumeDialog";
-import { useResumes } from "../hooks/use-resumes";
-import { RESUME_KIND_LABELS } from "../types";
+import { cn } from "@/lib/utils";
+import { RESUME_CATEGORIES } from "@/content/resume-categories";
+import { LatexStudio } from "../components/LatexStudio";
+import { OverviewTab } from "../components/OverviewTab";
+
+const OVERVIEW = "Overview";
 
 export function ResumesPage() {
-  const navigate = useNavigate();
-  const [newOpen, setNewOpen] = useState(false);
-  const { data: resumes, isLoading } = useResumes();
+  const [selected, setSelected] = useState<string>(OVERVIEW);
+  const sections = [OVERVIEW, ...RESUME_CATEGORIES];
 
   return (
     <>
       <PageHeader
         title="Resumes"
-        description="Your master resumes and the tailored copies made from them."
-        actions={
-          <Button onClick={() => setNewOpen(true)}>
-            <Plus className="size-4" aria-hidden />
-            New resume
-          </Button>
-        }
+        description="One tailored LaTeX resume per job category — edit, generate the PDF, download."
       />
 
-      {isLoading ? (
-        <div className="space-y-2">
-          <Skeleton className="h-10 w-full" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      ) : !resumes || resumes.length === 0 ? (
-        <EmptyState
-          icon={FileText}
-          title="No resumes yet"
-          description="Start with your master resume — paste the full text."
-          action={
-            <Button onClick={() => setNewOpen(true)}>
-              <Plus className="size-4" aria-hidden />
-              New resume
-            </Button>
-          }
-        />
-      ) : (
-        <div className="overflow-x-auto rounded-lg border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Label</TableHead>
-                <TableHead>Kind</TableHead>
-                <TableHead>Updated</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {resumes.map((resume) => (
-                <TableRow
-                  key={resume.id}
-                  className="cursor-pointer"
-                  onClick={() => navigate(`/resumes/${resume.id}`)}
-                >
-                  <TableCell className="font-medium">{resume.label}</TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">
-                      {RESUME_KIND_LABELS[resume.kind]}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatDate(resume.updatedAt)}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-      )}
+      {/* Mobile: dropdown */}
+      <div className="mb-4 md:hidden">
+        <Select value={selected} onValueChange={setSelected}>
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {sections.map((section) => (
+              <SelectItem key={section} value={section}>
+                {section}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-      <NewResumeDialog open={newOpen} onOpenChange={setNewOpen} />
+      <div className="flex gap-6">
+        {/* Desktop: vertical category nav */}
+        <nav className="hidden w-56 shrink-0 space-y-1 md:block">
+          {sections.map((section) => (
+            <button
+              key={section}
+              type="button"
+              onClick={() => setSelected(section)}
+              className={cn(
+                "w-full rounded-md px-3 py-2 text-left text-sm font-medium transition-colors",
+                selected === section
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+              )}
+            >
+              {section}
+            </button>
+          ))}
+        </nav>
+
+        <div className="min-w-0 flex-1">
+          {selected === OVERVIEW ? (
+            <OverviewTab />
+          ) : (
+            <LatexStudio key={selected} category={selected} />
+          )}
+        </div>
+      </div>
     </>
   );
 }

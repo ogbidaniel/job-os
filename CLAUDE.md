@@ -40,11 +40,19 @@ Long-term production-quality codebase; prefer maintainability over cleverness.
   requiredSkills/preferredSkills arrays + sourceSite + rawPosting (the
   original paste, kept for provenance and re-extraction). Legacy records
   may only have description/requirements — UI must degrade gracefully.
-- **The Profile feature is the AI's source of truth about the user**
-  (`src/features/profile/`): Profile singleton + Experience + Evidence.
-  Fit scoring and resume generation compile it via
-  `buildProfileContext()`; never let AI features claim skills that are
-  not in the profile vault.
+- **This is a single-user app and the user's profile is HARD-CODED** in
+  `src/content/profile.ts` (details, experience, evidence, and the
+  precompiled `PROFILE_CONTEXT` used by fit scoring). Edit facts there —
+  do not rebuild profile CRUD. The Profile/Experience/Evidence models
+  remain in the schema **dormant**: do NOT remove them (deletion
+  protection will fail the deploy) and do not build UI on them.
+- **Resume Studio**: one LaTeX resume per job category
+  (`src/content/resume-categories.ts`), stored as `Resume` records keyed
+  by label, seeded from `src/content/resume-template.ts`. PDFs compile
+  via the `compile-latex` Lambda proxying latex.ytotech.com (JSON-string
+  transport `{ pdfBase64 } | { error, log }`); Open-in-Overleaf is the
+  no-infrastructure fallback. Iterate compile changes with
+  `scripts/test-compile-latex.ts`.
 
 ## UI conventions
 

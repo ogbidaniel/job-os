@@ -9,15 +9,7 @@ import {
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import type { Job } from "@/types/models";
-import {
-  useEvidenceItems,
-  useExperiences,
-  useProfile,
-} from "@/features/profile/hooks/use-profile";
-import {
-  buildProfileContext,
-  hasProfileContent,
-} from "@/features/profile/lib/profile-context";
+import { PROFILE_CONTEXT } from "@/content/profile";
 import type { FitReport } from "../api/jobs-service";
 import { useScoreFit } from "../hooks/use-jobs";
 import { fitScoreClasses } from "../lib/job-context";
@@ -36,22 +28,12 @@ interface FitScoreCardProps {
 }
 
 export function FitScoreCard({ job }: FitScoreCardProps) {
-  const { data: profile } = useProfile();
-  const { data: experiences } = useExperiences();
-  const { data: evidence } = useEvidenceItems();
   const scoreFit = useScoreFit();
   const report = parseFitReport(job);
-  const canScore = hasProfileContent(experiences, evidence);
 
   function handleScore() {
-    scoreFit.mutate({
-      job,
-      profileContext: buildProfileContext(
-        profile,
-        experiences ?? [],
-        evidence ?? [],
-      ),
-    });
+    // The profile is hard-coded (single-user app): src/content/profile.ts
+    scoreFit.mutate({ job, profileContext: PROFILE_CONTEXT });
   }
 
   return (
@@ -62,7 +44,7 @@ export function FitScoreCard({ job }: FitScoreCardProps) {
           size="sm"
           variant={report ? "outline" : "default"}
           onClick={handleScore}
-          disabled={!canScore || scoreFit.isPending}
+          disabled={scoreFit.isPending}
         >
           {scoreFit.isPending ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -77,12 +59,7 @@ export function FitScoreCard({ job }: FitScoreCardProps) {
         </Button>
       </CardHeader>
       <CardContent>
-        {!canScore ? (
-          <p className="text-sm text-muted-foreground">
-            Fill your Profile (experience and evidence) first — the score is
-            judged only on what your profile evidences.
-          </p>
-        ) : !report || job.fitScore == null ? (
+        {!report || job.fitScore == null ? (
           <p className="text-sm text-muted-foreground">
             Not scored yet. The AI compares this job's requirements against
             your profile and names matches and gaps honestly.
