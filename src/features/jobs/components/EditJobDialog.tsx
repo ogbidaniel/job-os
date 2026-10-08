@@ -47,7 +47,9 @@ export function EditJobDialog({ job, open, onOpenChange }: EditJobDialogProps) {
     extractJob.mutate(pasteText, {
       onSuccess: (extraction) => {
         form.reset(extractionToFormValues(extraction, form.getValues()));
-        toast.success("Fields re-extracted — review before saving");
+        toast.success("Fields re-extracted — review before saving", {
+          description: extraction._model,
+        });
       },
     });
   }

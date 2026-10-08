@@ -1,5 +1,6 @@
 import { client, unwrap, unwrapRequired } from "@/lib/amplify-client";
 import type { Application } from "@/types/models";
+import { isSubmittedStatus } from "../types";
 
 export type ApplicationCreateInput = { jobId: string } & Partial<
   Pick<
@@ -47,12 +48,19 @@ export const applicationsService = {
   },
 
   /**
-   * Moving to APPLIED stamps appliedAt (once, still user-editable) so the
-   * calendar and dashboard reflect when the application was submitted.
+   * Moving to any submitted status stamps appliedAt (once, still
+   * user-editable) so the calendar and dashboard reflect when the
+   * application was sent. Checking the whole set rather than APPLIED alone
+   * matters because stages can be skipped — jumping straight to ASSESSMENT
+   * would otherwise never stamp a date.
    */
   async update(input: ApplicationUpdateInput): Promise<Application> {
     let patch = input;
-    if (input.status === "APPLIED" && input.appliedAt === undefined) {
+    if (
+      input.status !== undefined &&
+      isSubmittedStatus(input.status) &&
+      input.appliedAt === undefined
+    ) {
       const current = await this.get(input.id);
       if (current && !current.appliedAt) {
         patch = { ...input, appliedAt: new Date().toISOString() };

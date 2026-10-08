@@ -2,8 +2,17 @@ import { format } from "date-fns";
 import { client, unwrap, unwrapRequired } from "@/lib/amplify-client";
 import type { Job } from "@/types/models";
 
+/**
+ * Which model answered, e.g. "gemini:gemini-2.5-flash". Stamped by the
+ * provider chain so a silent fallback to a lighter model or a different
+ * provider is visible rather than invisible.
+ */
+export interface AiAnswered {
+  _model?: string;
+}
+
 /** Result of job-extract.v3 (JSON transported as a string). */
-export interface JobExtraction {
+export interface JobExtraction extends AiAnswered {
   company: string | null;
   title: string | null;
   location: string | null;
@@ -20,7 +29,7 @@ export interface JobExtraction {
 }
 
 /** Result of fit-score.v1 (also stored on Job.fitReport as JSON). */
-export interface FitReport {
+export interface FitReport extends AiAnswered {
   score: number;
   summary: string;
   matchedSkills: string[];

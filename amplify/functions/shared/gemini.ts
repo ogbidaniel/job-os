@@ -1,33 +1,36 @@
+import { AiError, type AiAdapter, type AiJsonRequest } from './ai-types';
+
 /**
- * Model preference order: on transient failures (429/5xx) we retry and
- * then fall back to the lighter model — availability beats picking the
- * ideal model, and both handle extraction well.
+ * Gemini adapter. One model, one attempt — retries and model fallback are
+ * the chain's job (see ./ai.ts), not this file's.
  */
-const GEMINI_MODELS = ['gemini-2.5-flash', 'gemini-2.5-flash-lite'] as const;
-const RETRY_DELAY_MS = 1500;
 
 interface GeminiResponse {
   candidates?: Array<{
     content?: { parts?: Array<{ text?: string }> };
+    finishReason?: string;
   }>;
+  promptFeedback?: { blockReason?: string };
 }
 
-export interface GeminiJsonRequest {
-  apiKey: string;
-  prompt: string;
-  /** Gemini structured-output schema (OBJECT/ARRAY/STRING/INTEGER...). */
-  responseSchema: object;
+export function geminiAdapter(model: string, apiKey: string): AiAdapter {
+  return {
+    provider: 'gemini',
+    model,
+    generate: (request, signal) => generate(model, apiKey, request, signal),
+  };
 }
 
-class TransientGeminiError extends Error {}
-
-async function requestOnce(
+async function generate(
   model: string,
-  { apiKey, prompt, responseSchema }: GeminiJsonRequest,
+  apiKey: string,
+  { prompt, responseSchema }: AiJsonRequest,
+  signal: AbortSignal,
 ): Promise<string> {
   const response = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
     {
+      signal,
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -46,52 +49,50 @@ async function requestOnce(
 
   if (!response.ok) {
     const body = await response.text();
-    const message = `Gemini request failed (${response.status}): ${body.slice(0, 300)}`;
-    if (response.status === 429 || response.status >= 500) {
-      throw new TransientGeminiError(message);
-    }
-    throw new Error(message);
+    throw new AiError(
+      `Gemini ${model} failed (HTTP ${response.status}): ${body.slice(0, 300)}`,
+      'gemini',
+      model,
+      response.status === 429 || response.status >= 500,
+    );
   }
 
   const payload = (await response.json()) as GeminiResponse;
+
+  // A safety block returns 200 with no candidate text. Permanent for this
+  // model — retrying the identical prompt blocks again, so fail over.
+  const blockReason = payload.promptFeedback?.blockReason;
+  if (blockReason) {
+    throw new AiError(
+      `Gemini ${model} blocked the prompt (${blockReason})`,
+      'gemini',
+      model,
+      false,
+    );
+  }
+
   const raw = payload.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!raw) {
-    throw new TransientGeminiError('Gemini returned no content');
+    const finish = payload.candidates?.[0]?.finishReason;
+    // MAX_TOKENS means the output was truncated mid-JSON: a bigger budget
+    // or a smaller ask is needed, so retrying unchanged is pointless.
+    throw new AiError(
+      `Gemini ${model} returned no content${finish ? ` (finishReason ${finish})` : ''}`,
+      'gemini',
+      model,
+      finish !== 'MAX_TOKENS',
+    );
   }
-  JSON.parse(raw); // validate before returning
+
+  try {
+    JSON.parse(raw); // validate before handing it on
+  } catch {
+    throw new AiError(
+      `Gemini ${model} returned unparseable JSON: ${raw.slice(0, 200)}`,
+      'gemini',
+      model,
+      false,
+    );
+  }
   return raw;
-}
-
-/**
- * Calls Gemini with structured JSON output at temperature 0 and returns
- * the raw JSON text (validated parseable). Retries transient failures,
- * falling back across models. Callers pass the string through to the
- * client, which parses and types it in the feature service.
- */
-export async function callGeminiJson(
-  request: GeminiJsonRequest,
-): Promise<string> {
-  let lastError: Error = new Error('Gemini call not attempted');
-
-  for (const model of GEMINI_MODELS) {
-    for (let attempt = 0; attempt < 2; attempt += 1) {
-      try {
-        return await requestOnce(model, request);
-      } catch (error) {
-        if (!(error instanceof TransientGeminiError)) throw error;
-        lastError = error;
-        await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
-      }
-    }
-  }
-
-  throw lastError;
-}
-
-export function requireApiKey(): string {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    throw new Error('GEMINI_API_KEY secret is not configured');
-  }
-  return apiKey;
 }

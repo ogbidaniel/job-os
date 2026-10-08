@@ -4,6 +4,7 @@ import { useApplications } from "@/features/applications/hooks/use-applications"
 export interface DashboardCounts {
   applications: number;
   applied: number;
+  assessments: number;
   interviews: number;
   offers: number;
 }
@@ -16,6 +17,7 @@ export function useDashboardCounts() {
     return {
       applications: applications.length,
       applied: applications.filter((a) => Boolean(a.appliedAt)).length,
+      assessments: applications.filter((a) => a.status === "ASSESSMENT").length,
       interviews: applications.filter((a) => a.status === "INTERVIEWING").length,
       offers: applications.filter((a) => a.status === "OFFER").length,
     };

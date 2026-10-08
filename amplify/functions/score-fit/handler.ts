@@ -1,5 +1,5 @@
 import type { Schema } from '../../data/resource';
-import { callGeminiJson, requireApiKey } from '../shared/gemini';
+import { callAiJsonTagged } from '../shared/ai';
 
 /**
  * Prompt version: fit-score.v1
@@ -50,8 +50,7 @@ const responseSchema = {
 export const handler: Schema['scoreFit']['functionHandler'] = async (
   event,
 ) => {
-  return callGeminiJson({
-    apiKey: requireApiKey(),
+  return callAiJsonTagged({
     prompt: buildPrompt(
       event.arguments.jobContext,
       event.arguments.profileContext,

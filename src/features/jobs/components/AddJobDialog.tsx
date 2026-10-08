@@ -42,7 +42,9 @@ export function AddJobDialog({ open, onOpenChange }: AddJobDialogProps) {
     extractJob.mutate(pasteText, {
       onSuccess: (extraction) => {
         form.reset(extractionToFormValues(extraction, form.getValues()));
-        toast.success("Fields populated from the paste — review before saving");
+        toast.success("Fields populated from the paste — review before saving", {
+          description: extraction._model,
+        });
       },
     });
   }

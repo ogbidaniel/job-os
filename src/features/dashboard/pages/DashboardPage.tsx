@@ -15,6 +15,7 @@ const cards: ReadonlyArray<{
 }> = [
   { label: "Applications", key: "applications", to: "/applications" },
   { label: "Applied", key: "applied", to: "/applications?status=APPLIED" },
+  { label: "Assessments", key: "assessments", to: "/applications?status=ASSESSMENT" },
   { label: "Interviews", key: "interviews", to: "/applications?status=INTERVIEWING" },
   { label: "Offers", key: "offers", to: "/applications?status=OFFER" },
 ];
@@ -28,7 +29,7 @@ export function DashboardPage() {
         title="Dashboard"
         description="Overview of your job search pipeline."
       />
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         {cards.map((card) => (
           <Link key={card.key} to={card.to}>
             <Card className="transition-colors hover:bg-accent/50">

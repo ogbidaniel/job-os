@@ -1,5 +1,5 @@
 import type { Schema } from '../../data/resource';
-import { callGeminiJson, requireApiKey } from '../shared/gemini';
+import { callAiJsonTagged } from '../shared/ai';
 
 /**
  * Prompt version: job-extract.v3.1
@@ -108,8 +108,7 @@ export const handler: Schema['extractJob']['functionHandler'] = async (
   const today =
     event.arguments.today ?? new Date().toISOString().slice(0, 10);
 
-  return callGeminiJson({
-    apiKey: requireApiKey(),
+  return callAiJsonTagged({
     prompt: buildPrompt(event.arguments.text, today),
     responseSchema,
   });

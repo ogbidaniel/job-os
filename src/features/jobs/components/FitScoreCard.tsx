@@ -108,6 +108,11 @@ export function FitScoreCard({ job }: FitScoreCardProps) {
                 </div>
               </div>
             ) : null}
+            {report._model ? (
+              <p className="text-xs text-muted-foreground">
+                Scored by {report._model}
+              </p>
+            ) : null}
           </div>
         )}
       </CardContent>

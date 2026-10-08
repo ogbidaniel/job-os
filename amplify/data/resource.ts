@@ -17,6 +17,9 @@ import { scoreFit } from "../functions/score-fit/resource";
  */
 const schema = a.schema({
   JobStatus: a.enum(["NEW", "REVIEWED", "CLOSED", "ARCHIVED"]),
+  // ASSESSMENT (online assessment / take-home) was appended, not inserted:
+  // adding an enum value is additive, but reordering is a breaking change.
+  // Pipeline display order lives in src/features/applications/types.ts.
   ApplicationStatus: a.enum([
     "SAVED",
     "DRAFTING",
@@ -26,6 +29,7 @@ const schema = a.schema({
     "REJECTED",
     "WITHDRAWN",
     "GHOSTED",
+    "ASSESSMENT",
   ]),
   DocumentKind: a.enum(["MASTER", "TAILORED"]),
 
